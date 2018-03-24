@@ -1,0 +1,29 @@
+Debug/
+Release/
+.metadata
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.settings/
+.loadpath
+.recommenders
+
+# Locally stored "Eclipse launch configurations"
+*.launch
+
+# CDT- autotools
+.autotools
+
+# sbteclipse plugin
+.target
+
+# STS (Spring Tool Suite)
+.springBeans
+
+# Code Recommenders
+.recommenders/
+
