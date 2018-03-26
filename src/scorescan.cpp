@@ -11,25 +11,101 @@ using namespace std;
 using namespace cv;
 using namespace zbar;
 
-Mat four_point_transform(Mat image, vector<Point2f> rect)
+RNG rng(12345);
+
+void sortPointsCW(vector<Point>& points)
 {
-	int outWidth = 96;
-	int outHeight = 96;
+	std::sort(points.begin(), points.end(), 	[](cv::Point pt1, cv::Point pt2) { return (pt1.y < pt2.y);});
+	std::sort(points.begin(), points.begin()+2, [](cv::Point pt1, cv::Point pt2) { return (pt1.x < pt2.x);});
+	std::sort(points.begin()+2, points.end(), 	[](cv::Point pt1, cv::Point pt2) { return (pt1.x > pt2.x);});
+}
 
-	vector<Point2f> dst{
-		{0,0},
-		{static_cast<float>(outWidth), 0},
-		{static_cast<float>(outWidth), static_cast<float>(outHeight)},
-		{0, static_cast<float>(outHeight)}
+vector<Point2f> rectCorners(Rect2f rect)
+{
+	return {
+		rect.tl(),
+		{ rect.x + rect.width, rect.y },
+		rect.br(),
+		{rect.x, rect.y + rect.height}
 	};
+}
 
-	auto M = cv::getPerspectiveTransform(rect, dst);
-	cout << M << endl;
+
+
+bool tryFindPage(
+		Mat inPage,
+		Mat& outPage,
+		vector<Point2f> srcQRCorners,
+		Size pageSize,
+		Rect2f qrBox)
+{
+
+	// Zoom out to ensure we include the full box
+	double scaleFactor = 0.7;
+
+	// 0.4 => .19
+	// 0.5 => .30
+	// 0.7 => .58
 
 	Mat warped;
-	cv::warpPerspective(image, warped, M, {outWidth*6, outHeight*8});
+	Mat scalePerspective;
+	{
+		auto perspective = cv::getPerspectiveTransform(srcQRCorners, rectCorners(qrBox));
 
-	return warped;
+		auto scale = getRotationMatrix2D({pageSize.width / 2.0f, pageSize.height / 2.0f}, 0, scaleFactor);
+		scale.push_back(cv::Mat::zeros(1, 3, CV_64F));
+		scale.at<double>(2,2) = 1.0;
+
+		scalePerspective = scale * perspective;
+
+		cv::warpPerspective(inPage, warped, scalePerspective, pageSize);
+	}
+
+	// Blur the inPage.
+	Mat blurred;
+	cv::GaussianBlur(warped, blurred, Size {3,3}, 0);
+
+	// Find edges
+	Mat edged;
+	cv::Canny(blurred, edged, 75, 200);
+
+	// Find contours.
+	vector<vector<Point>> contours{};
+	cv::findContours(edged, contours, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
+
+	// Sort contours by area
+	std::sort(contours.begin(), contours.end(), [](vector<Point> a, vector<Point> b)
+			{ return cv::contourArea(a) > cv::contourArea(b); });
+
+	for (auto& contour : contours)
+	{
+		vector<Point> corners{};
+		cv::approxPolyDP(contour, corners, 0.10 * cv::arcLength(contour, true), true);
+
+		if (corners.size() == 4)
+		{
+			sortPointsCW(corners);
+			vector<Point2f> srcCorners;
+			cv::Mat(corners).copyTo(srcCorners);
+
+			double area = cv::contourArea(contour) / scaleFactor;
+			if (area / pageSize.area() < 0.5){
+				// Failed to scan: detected square too small.
+				break;
+			}
+
+			Rect2f pageBox { {}, pageSize };
+			vector<Point2f> pageCorners = rectCorners(pageBox);
+
+			auto finalPerspective = cv::getPerspectiveTransform(srcCorners, pageCorners);
+
+
+			cv::warpPerspective(inPage, outPage, finalPerspective * scalePerspective, pageSize);
+			return true;
+		}
+	}
+
+	return false;
 }
 
 int main (int argc, char **argv)
@@ -39,12 +115,13 @@ int main (int argc, char **argv)
     {
         imageName = argv[1];
     }
-    Mat image;
-    image = imread(imageName.c_str(), IMREAD_GRAYSCALE); // Read the file
 
-    if(image.empty())
+    Mat rawImage;
+    rawImage = imread(imageName.c_str(), IMREAD_GRAYSCALE); // Read the file
+
+    if(rawImage.empty())
     {
-        cout <<  "Could not open or find the image" << std::endl ;
+        cout <<  "Could not open or find the rawImage" << std::endl ;
         return -1;
     }
 
@@ -56,7 +133,7 @@ int main (int argc, char **argv)
     scanner.set_config(ZBAR_QRCODE, ZBAR_CFG_POSITION, 1);
 
     // wrap image data
-    Image zimage(image.cols, image.rows, "Y800", image.data, image.rows * image.cols);
+    Image zimage(rawImage.cols, rawImage.rows, "Y800", rawImage.data, rawImage.rows * rawImage.cols);
 
     // scan the image for barcodes
     scanner.scan(zimage);
@@ -65,7 +142,7 @@ int main (int argc, char **argv)
         if (symbol->get_type() == ZBAR_QRCODE)
         {
         	assert(symbol->get_location_size() == 4);
-        	vector<Point2f> points {
+        	vector<Point2f> qrCorners {
 				{ static_cast<float>(symbol->get_location_x(0)), static_cast<float>(symbol->get_location_y(0)) },
 				{ static_cast<float>(symbol->get_location_x(3)), static_cast<float>(symbol->get_location_y(3)) },
 				{ static_cast<float>(symbol->get_location_x(2)), static_cast<float>(symbol->get_location_y(2)) },
@@ -74,10 +151,16 @@ int main (int argc, char **argv)
 
         	string data = symbol->get_data();
 
-        	Mat warped = four_point_transform(image, points);
+        	Size pageSize {359, 480};
+        	Point2f qrLocation {5, 5};
+        	Rect2f qrBox {5, 5, 75, 75};
 
-        	imshow( "Display window", warped );
-        	waitKey(0);
+        	Mat warped;
+        	if (tryFindPage(rawImage, warped, qrCorners, pageSize, qrBox))
+        	{
+        		imshow( "Display window", warped );
+        		waitKey(0);
+        	}
         }
     }
 
