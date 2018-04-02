@@ -130,6 +130,7 @@
 							<tool id="cdt.managedbuild.tool.gnu.c.linker.exe.release.804399089" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.release"/>
 							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.exe.release.1672184545" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.release">
 								<option id="gnu.cpp.link.option.libs.1792335507" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" useByScannerDiscovery="false" valueType="libs">
+									<listOptionValue builtIn="false" value="zbar"/>
 									<listOptionValue builtIn="false" value="opencv_stitching"/>
 									<listOptionValue builtIn="false" value="opencv_superres"/>
 									<listOptionValue builtIn="false" value="opencv_videostab"/>
@@ -216,4 +217,5 @@
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
 	<storageModule moduleId="refreshScope"/>
 	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets"/>
+	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 </cproject>
