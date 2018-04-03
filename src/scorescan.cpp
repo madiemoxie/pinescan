@@ -274,6 +274,7 @@ int main(int argc, char **argv) {
 	int camera(-1);
 	bool liveCapture(false);
 
+	// Use live capture if a camera number is specified.
 	if (imageName.size() == 1 && imageName[0] >= '0' && imageName[0] <= '9') {
 		camera = imageName[0] - '0';
 		liveCapture = true;
@@ -331,6 +332,7 @@ int main(int argc, char **argv) {
 				auto results = scanImage(scanner, rawImage, pageSize, qrBox, shapes);
 
 				if (results.size() > 0) {
+					cerr << "Found " << results.size() << " successful scans." << endl;
 					scanRequested = false;
 				}
 
