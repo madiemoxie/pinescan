@@ -21,9 +21,6 @@ const int KEY_ESC = 27;
 const int KEY_Q = 113;
 const int KEY_A = 97;
 const int KEY_SPACE = 32;
-const int KEY_RIGHT = 83;
-const int KEY_LEFT = 81;
-const int KEY_DOWN = 84;
 
 struct SVGShape {
 	SVGShape() = default;
@@ -281,7 +278,6 @@ int main(int argc, char **argv) {
 	}
 
 	cv::namedWindow(windowName, cv::WINDOW_NORMAL);
-	cvSetWindowProperty(windowName, CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
 
 	cv::Size pageSize;
 	map<string, SVGShape> shapes = findSVGShapes(svgFile, pageSize);
@@ -322,23 +318,25 @@ int main(int argc, char **argv) {
 			imshow(windowName, rawImage);
 
 			key = cv::waitKey(25);
+			
 			if (key == KEY_ESC || key == KEY_Q) { // ESC
 				break;
-			} else if (key == KEY_RIGHT) {
+			} else if (key == KEY_SPACE) {
 				scanRequested = true;
+				cerr << "Scan requested" << endl;
 			}
 
 			if (scanRequested) {
 				auto results = scanImage(scanner, rawImage, pageSize, qrBox, shapes);
 
 				if (results.size() > 0) {
-					cerr << "Found " << results.size() << " successful scans." << endl;
+					cerr << "Found " << results.size() << " successful form." << endl;
 					scanRequested = false;
 				}
 
 				for (auto&& result : results) {
 					imshow(windowName, result.preview);
-					if (cv::waitKey(0) == KEY_DOWN) {
+					if (cv::waitKey(0) == KEY_A) {
 						printResult(result.values);
 					}
 				}
@@ -355,7 +353,7 @@ int main(int argc, char **argv) {
 
 		for (auto&& result : results) {
 			imshow(windowName, result.preview);
-			if (cv::waitKey(0) == KEY_RIGHT) {
+			if (cv::waitKey(0) == KEY_A) {
 				printResult(result.values);
 			}
 		}

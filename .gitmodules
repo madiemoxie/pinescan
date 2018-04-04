@@ -1,0 +1,3 @@
+[submodule "zbar-windows-binaries"]
+	path = zbar-windows-binaries
+	url = https://github.com/arlosi/zbar-windows-binaries.git

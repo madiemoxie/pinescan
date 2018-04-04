@@ -1,6 +1,8 @@
 Debug/
 Release/
 .metadata
+.vs
+*.vcxproj.user
 bin/
 tmp/
 *.tmp
