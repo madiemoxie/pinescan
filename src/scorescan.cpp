@@ -175,7 +175,7 @@ vector<ScanResult> scanImage(ImageScanner& scanner, const cv::Mat& rawImage,
 
 	for (Image::SymbolIterator symbol = zimage.symbol_begin(); symbol != zimage.symbol_end(); ++symbol) {
 		if (symbol->get_type() == ZBAR_QRCODE) {
-			//assert(symbol->get_location_size() == 4); // All QR codes have 4 corners
+			assert(symbol->get_location_size() == 4); // All QR codes have 4 corners
 			vector<cv::Point2f> qrCorners {
 				{ static_cast<float>(symbol->get_location_x(0)), static_cast<float>(symbol->get_location_y(0)) },
 				{ static_cast<float>(symbol->get_location_x(3)), static_cast<float>(symbol->get_location_y(3)) },
