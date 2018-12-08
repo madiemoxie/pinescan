@@ -30,6 +30,7 @@ for line in sys.stdin:
     data = json.loads(line)
 
     results = {
+        "competition" : data["qr_data"],
         "match" : parseNumberOrDefault(data, ["match1", "match2", "match3"], ""),
         "team" : parseNumberOrDefault(data, ["team1", "team2", "team3", "team4", "team5"], ""),
         "color" : parseOptionOrDefault(data, "color", ''),
