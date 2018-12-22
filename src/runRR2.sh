@@ -1,2 +1,2 @@
 #!/bin/bash
-../Release/scorescan sheet.svg 1 | ./parseRelicRecovery.py >> $1
+../Release/scorescan sheetRR2.svg 1 | ./parseRoverRuckus.py >> $1
