@@ -33,17 +33,24 @@ for line in sys.stdin:
         "competition" : data["qr_data"],
         "match" : parseNumberOrDefault(data, ["match1", "match2", "match3"], ""),
         "team" : parseNumberOrDefault(data, ["team1", "team2", "team3", "team4", "team5"], ""),
+        "matchtype" : parseOptionOrDefault(data, "matchtype", 'Qual'),
         "color" : parseOptionOrDefault(data, "color", ''),
+        "startingside" : parseOptionOrDefault(data, "side", ''),
         "landed" : parseOptionOrDefault(data, "landed", 0),
         "sampled" : parseOptionOrDefault(data, "sampled", 0),
         "claimed" : parseOptionOrDefault(data, "claimed", 0),
         "parked" : parseOptionOrDefault(data, "parked", 0),
-        "lander" : parseNumberOrDefault(data, ["lander1", "lander2"], 0),
-        "depot" : parseNumberOrDefault(data, ["depot1", "depot2"], 0),
-        "other" : parseOptionOrDefault(data, "other", 0),
+        "lander" : parseNumberOrDefault(data, ["lander1", "lander2"], ""),
+        "depot" : parseNumberOrDefault(data, ["depot1", "depot2"], ""),
         "hanging" : parseOptionOrDefault(data, "hanging", 0),
         "partincrater" : parseOptionOrDefault(data, "partincrater", 0),
         "fullyincrater" : parseOptionOrDefault(data, "fullyincrater", 0),
+        "defense" : parseOptionOrDefault(data, "defense", 0),
+        "minor" : parseOptionOrDefault(data, "minor", 0),
+        "major" : parseOptionOrDefault(data, "major", 0),
+        "goldhold" : parseOptionOrDefault(data, "goldhold", 0),
+        "silverhold" : parseOptionOrDefault(data, "silverhold", 0),
+        "disconnect" : parseOptionOrDefault(data, "disconnect", 0)
     }
 
     headers = ','.join(map(str, results.keys()))
