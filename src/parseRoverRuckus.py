@@ -64,14 +64,23 @@ def isTeamNumberValid(teamNumber):
 def isMatchNumberValid(matchNumber):
     return matchNumber < 200 or matchNumber == 999
 
+def isTotalNumberOfMineralsValid(match):
+    return (int(match["lander"]) + int(match["depot"])) <= 160
+
+def isEndGamePositionValid(match):
+    # You can either not score in end game at all, or score through only one of the hang or park positions. 
+    return (int(match["hanging"]) + int(match["partincrater"]) + int(match["fullyincrater"])) <= 1
+
 def indexOfAlreadyScannedMatch(match):
     for i in range(len(matchdata)):
         line = matchdata[i]
-        if str(line["competition"]) == str(match["competition"]) and str(line["match"]) == str(match["match"]) and str(line["team"]) == str(match["team"]):
+        if (str(line["competition"]) == str(match["competition"]) 
+            and str(line["match"]) == str(match["match"]) 
+            and str(line["team"]) == str(match["team"])):
             return i
     return -1 
 
-
+# Closes additional box and puts dialog box on top of all other windows.
 root = tkinter.Tk()
 root.withdraw()
 root.attributes("-topmost", True)
@@ -104,8 +113,6 @@ for line in sys.stdin:
         "disconnect" : parseOptionOrDefault(data, "disconnect", 0)
     }
 
-    print(results["team"])
-
     teamNumberError = ""
     if not isTeamNumberValid(results["team"]):
         teamNumberError = "Team number is invalid!\n"
@@ -115,6 +122,16 @@ for line in sys.stdin:
     if not isMatchNumberValid(results["match"]):
         matchNumberError = "Match number is invalid!\n"
         print("Skipped match due to invalid match number.")
+
+    totalNumberOfMineralsError = ""
+    if not isTotalNumberOfMineralsValid(results):
+        totalNumberOfMineralsError = "Total number of minerals scored is invalid!\n"
+        print("Skipped match due to invalid total number of minerals.")
+    
+    endGamePositionError = ""
+    if not isEndGamePositionValid(results):
+        endGamePositionError = "End Game position is invalid!\n"
+        print("Skipped match due to invalid End Game position")
 
     if indexOfAlreadyScannedMatch(results) != -1: 
         duplicateMatchError = "Match has already been scanned!\n"
@@ -129,10 +146,9 @@ for line in sys.stdin:
             print("Overwrote match at index " + str(indexOfAlreadyScannedMatch(results)))
             continue
 
-    errorMessage = teamNumberError + matchNumberError
+    errorMessage = teamNumberError + matchNumberError + endGamePositionError + totalNumberOfMineralsError
 
     if errorMessage != "":
-        print(errorMessage)
         root.lift()
         messagebox.showerror("Error", errorMessage)
         root.lift()
