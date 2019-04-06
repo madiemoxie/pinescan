@@ -2,6 +2,12 @@
 import json
 import sys
 import os
+import io
+import csv
+import time
+import shutil
+import tkinter
+from tkinter import messagebox
 
 THRESHOLD = 0.3
 
@@ -26,8 +32,53 @@ def parseNumberOrDefault(data, digitKeys, default):
 def parseVector(data, keys):
     return [data[k] > THRESHOLD for k in keys]
 
+if len(sys.argv) != 3:
+    print("Usage: <matchdata.csv> <teamnumberlist.txt>")
+    sys.exit(1)
+
+matchdatapath = sys.argv[1]
+matchdatapathtemp = matchdatapath + ".temp"
+teamnumberlistpath = sys.argv[2]
+
+if not os.path.exists(teamnumberlistpath):
+    print("Error: " + matchdatapath + " not found")
+    sys.exit(1)
+
+with open(teamnumberlistpath, "r") as f:
+    teamnumbers = f.read().splitlines()
+
+print("Loaded " + str(len(teamnumbers)) + " teamnumbers.")
+
+with io.open(matchdatapath, "r", encoding='utf-8-sig', newline='') as csvfile:
+    matchdata = list(csv.DictReader(csvfile))
+
+def writeMatchDataFile(path, data):
+    with io.open(path, "w", encoding='utf-8-sig', newline='') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=data[0].keys()) 
+        writer.writeheader()
+        writer.writerows(data)
+
+def isTeamNumberValid(teamNumber):
+    return str(teamNumber) in teamnumbers
+
+def isMatchNumberValid(matchNumber):
+    return matchNumber < 200 or matchNumber == 999
+
+def indexOfAlreadyScannedMatch(match):
+    for i in range(len(matchdata)):
+        line = matchdata[i]
+        if str(line["competition"]) == str(match["competition"]) and str(line["match"]) == str(match["match"]) and str(line["team"]) == str(match["team"]):
+            return i
+    return -1 
+
+
+root = tkinter.Tk()
+root.withdraw()
+root.attributes("-topmost", True)
+
 for line in sys.stdin:
     data = json.loads(line)
+    print("Read match")
 
     results = {
         "competition" : data["qr_data"],
@@ -40,8 +91,8 @@ for line in sys.stdin:
         "sampled" : parseOptionOrDefault(data, "sampled", 0),
         "claimed" : parseOptionOrDefault(data, "claimed", 0),
         "parked" : parseOptionOrDefault(data, "parked", 0),
-        "lander" : parseNumberOrDefault(data, ["lander1", "lander2"], ""),
-        "depot" : parseNumberOrDefault(data, ["depot1", "depot2"], ""),
+        "lander" : parseNumberOrDefault(data, ["lander1", "lander2"], 0),
+        "depot" : parseNumberOrDefault(data, ["depot1", "depot2"], 0),
         "hanging" : parseOptionOrDefault(data, "hanging", 0),
         "partincrater" : parseOptionOrDefault(data, "partincrater", 0),
         "fullyincrater" : parseOptionOrDefault(data, "fullyincrater", 0),
@@ -53,13 +104,49 @@ for line in sys.stdin:
         "disconnect" : parseOptionOrDefault(data, "disconnect", 0)
     }
 
+    print(results["team"])
+
+    teamNumberError = ""
+    if not isTeamNumberValid(results["team"]):
+        teamNumberError = "Team number is invalid!\n"
+        print("Skipped match due to invalid team number.")
+
+    matchNumberError = ""
+    if not isMatchNumberValid(results["match"]):
+        matchNumberError = "Match number is invalid!\n"
+        print("Skipped match due to invalid match number.")
+
+    if indexOfAlreadyScannedMatch(results) != -1: 
+        duplicateMatchError = "Match has already been scanned!\n"
+        doOverwrite = messagebox.askyesno("Error", "This match has already been scanned;\n would you like to overwrite the previous scan?")
+        if not doOverwrite:
+            print("Skipped match due to being a duplicate.")
+            continue
+        else: 
+            matchdata[indexOfAlreadyScannedMatch(results)] = results
+            writeMatchDataFile(matchdatapathtemp, matchdata)
+            shutil.move(matchdatapathtemp, matchdatapath)
+            print("Overwrote match at index " + str(indexOfAlreadyScannedMatch(results)))
+            continue
+
+    errorMessage = teamNumberError + matchNumberError
+
+    if errorMessage != "":
+        print(errorMessage)
+        root.lift()
+        messagebox.showerror("Error", errorMessage)
+        root.lift()
+        continue
+
+    matchdata.append(results)
     headers = ','.join(map(str, results.keys()))
     data = ','.join(map(str, results.values()))
-    print(data)
-    if len(sys.argv) > 1:
-        filename = sys.argv[1]
+    if len(sys.argv) > 2:
+        filename = matchdatapath
         exists = os.path.exists(filename)
         with open(filename, "a+") as f:
             if not exists:
                 f.write(headers + "\n")
             f.write(data + "\n")
+            print(data)
+            
